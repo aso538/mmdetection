@@ -21,7 +21,7 @@ from .transforms import (Albu, CachedMixUp, CachedMosaic, CopyPaste, CutOut,
                          RandomCenterCropPad, RandomCrop, RandomErasing,
                          RandomFlip, RandomShift, Resize, ResizeShortestEdge,
                          SegRescale, YOLOXHSVRandomAug)
-from .wrappers import MultiBranch, ProposalBroadcaster, RandomOrder
+from .wrappers import MultiBranch, ProposalBroadcaster, RandomOrder, RandomChoice
 
 __all__ = [
     'PackDetInputs', 'ToTensor', 'ImageToTensor', 'Transpose',
@@ -39,5 +39,5 @@ __all__ = [
     'FixShapeResize', 'ProposalBroadcaster', 'InferencerLoader',
     'LoadTrackAnnotations', 'BaseFrameSample', 'UniformRefFrameSample',
     'PackTrackInputs', 'PackReIDInputs', 'FixScaleResize',
-    'ResizeShortestEdge', 'GTBoxSubOne_GLIP', 'RandomFlip_GLIP'
+    'ResizeShortestEdge', 'GTBoxSubOne_GLIP', 'RandomFlip_GLIP','RandomChoice'
 ]

@@ -5,6 +5,8 @@ from typing import Callable, Dict, List, Optional, Union
 import numpy as np
 from mmcv.transforms import BaseTransform, Compose
 from mmcv.transforms.utils import cache_random_params, cache_randomness
+from mmcv.transforms.wrappers import Transform
+from mmcv.transforms.wrappers import RandomChoice as MMCV_RandomChoice
 
 from mmdet.registry import TRANSFORMS
 
@@ -73,7 +75,7 @@ class MultiBranch(BaseTransform):
         >>> Compose(
         >>>     LoadImageFromFile(ignore_empty=False, to_float32=False, color_type='color', imdecode_backend='cv2') # noqa
         >>>     LoadAnnotations(with_bbox=True, with_label=True, with_mask=False, with_seg=False, poly2mask=True, imdecode_backend='cv2') # noqa
-        >>>     Resize(scale=(1333, 800), scale_factor=None, keep_ratio=True, clip_object_border=True), backend=cv2), interpolation=bilinear) # noqa
+        >>>     Resize(((scale=(1333, 800), scale_factor=None, keep_ratio=True, clip_object_border=True), backend=cv2), interpolation=bilinear) # noqa
         >>>     RandomFlip(prob=0.5, direction=horizontal)
         >>>     MultiBranch(branch_pipelines=['sup'])
         >>> )
@@ -275,3 +277,38 @@ class ProposalBroadcaster(BaseTransform):
         outputs = output_scatters[0]
         outputs['proposals'] = output_scatters[1]['gt_bboxes']
         return outputs
+
+
+
+@TRANSFORMS.register_module()
+class RandomChoice(MMCV_RandomChoice):
+    """Process data with a randomly chosen transform from given candidates.
+
+        Args:
+            transforms (list[list]): A list of transform candidates, each is a
+                sequence of transforms.
+            prob (list[float], optional): The probabilities associated
+                with each pipeline. The length should be equal to the pipeline
+                number and the sum should be 1. If not given, a uniform
+                distribution will be assumed.
+
+        Examples:
+            >>> # config
+            >>> pipeline = [
+            >>>     dict(type='RandomChoice',
+            >>>         transforms=[
+            >>>             [dict(type='RandomHorizontalFlip')],  # subpipeline 1
+            >>>             [dict(type='RandomRotate')],  # subpipeline 2
+            >>>         ]
+            >>>     )
+            >>> ]
+        """
+    def __init__(self, transforms: List[Union[Transform, List[Transform]]],
+                 prob: Optional[List[float]] = None):
+        super(RandomChoice, self).__init__(transforms=transforms, prob=prob)
+
+    def transform(self, results: Dict) -> Optional[Dict]:
+        """Randomly choose a transform to apply."""
+        idx = self.random_pipeline_index()
+        results['random_choice_idx'] = idx
+        return self.transforms[idx](results)

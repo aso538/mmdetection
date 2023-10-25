@@ -131,6 +131,12 @@ class PackDetInputs(BaseTransform):
                 gt_sem_seg_data.set_metainfo(metainfo)
             data_sample.gt_sem_seg = gt_sem_seg_data
 
+        if 'crop_index' not in results:
+            results['crop_index'] = None
+
+        if 'scale_factor_list' not in results:
+            results['scale_factor_list'] = [results['scale_factor']]
+
         img_meta = {}
         for key in self.meta_keys:
             if key in results:
@@ -242,7 +248,7 @@ class Transpose:
 
     def __repr__(self):
         return self.__class__.__name__ + \
-            f'(keys={self.keys}, order={self.order})'
+               f'(keys={self.keys}, order={self.order})'
 
 
 @TRANSFORMS.register_module()
@@ -320,7 +326,7 @@ class PackTrackInputs(BaseTransform):
         self.meta_keys = default_meta_keys
         if meta_keys is not None:
             if isinstance(meta_keys, str):
-                meta_keys = (meta_keys, )
+                meta_keys = (meta_keys,)
             else:
                 assert isinstance(meta_keys, tuple), \
                     'meta_keys must be str or tuple'
@@ -372,7 +378,7 @@ class PackTrackInputs(BaseTransform):
                 if 'gt_ignore_flags' in results:
                     for i, gt_mask in enumerate(gt_masks_list):
                         valid_idx, ignore_idx = valid_idx_list[
-                            i], ignore_idx_list[i]
+                                                    i], ignore_idx_list[i]
                         instance_data_list[i][mapped_key] = gt_mask[valid_idx]
                         ignore_instance_data_list[i][mapped_key] = gt_mask[
                             ignore_idx]
@@ -386,13 +392,13 @@ class PackTrackInputs(BaseTransform):
                 if 'gt_ignore_flags' in results:
                     for i, ann in enumerate(anns_list):
                         valid_idx, ignore_idx = valid_idx_list[
-                            i], ignore_idx_list[i]
+                                                    i], ignore_idx_list[i]
                         instance_data_list[i][
                             self.mapping_table[key]] = to_tensor(
-                                ann[valid_idx])
+                            ann[valid_idx])
                         ignore_instance_data_list[i][
                             self.mapping_table[key]] = to_tensor(
-                                ann[ignore_idx])
+                            ann[ignore_idx])
                 else:
                     for i, ann in enumerate(anns_list):
                         instance_data_list[i][
@@ -460,7 +466,7 @@ class PackReIDInputs(BaseTransform):
         self.meta_keys = self.default_meta_keys
         if meta_keys is not None:
             if isinstance(meta_keys, str):
-                meta_keys = (meta_keys, )
+                meta_keys = (meta_keys,)
             else:
                 assert isinstance(meta_keys, tuple), \
                     'meta_keys must be str or tuple.'
