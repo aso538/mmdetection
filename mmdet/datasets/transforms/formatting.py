@@ -134,8 +134,14 @@ class PackDetInputs(BaseTransform):
         if 'crop_index' not in results:
             results['crop_index'] = None
 
+        if 'pre_crop_size' not in results:
+            results['pre_crop_size'] = None
+
         if 'scale_factor_list' not in results:
             results['scale_factor_list'] = [results['scale_factor']]
+
+        if 'pre_pad_size' not in results:
+            results['pre_pad_size'] = results['img_shape']
 
         img_meta = {}
         for key in self.meta_keys:

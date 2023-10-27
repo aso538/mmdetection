@@ -223,11 +223,13 @@ class Resize(MMCV_Resize):
             'scale', 'scale_factor', 'height', 'width', and 'keep_ratio' keys
             are updated in result dict.
         """
+
         if self.scale:
             results['scale'] = self.scale
         else:
             img_shape = results['img'].shape[:2]
             results['scale'] = _scale_size(img_shape[::-1], self.scale_factor)
+
         self._resize_img(results)
         self._resize_bboxes(results)
         self._resize_masks(results)
@@ -238,7 +240,6 @@ class Resize(MMCV_Resize):
             results['scale_factor_list'] = [results['scale_factor']]
         else:
             results['scale_factor_list'].append(results['scale_factor'])
-
         return results
 
     def __repr__(self) -> str:
@@ -784,6 +785,7 @@ class Pad(MMCV_Pad):
         Returns:
             dict: Updated result dict.
         """
+        results['pre_pad_size'] = results['img_shape']
         self._pad_img(results)
         self._pad_seg(results)
         self._pad_masks(results)
@@ -912,6 +914,7 @@ class RandomCrop(BaseTransform):
                 'homography_matrix']
 
         # crop the image
+        results['pre_crop_size'] = img.shape[:2]
         img = img[crop_y1:crop_y2, crop_x1:crop_x2, ...]
         img_shape = img.shape
         results['img'] = img
