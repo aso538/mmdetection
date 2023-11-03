@@ -5,8 +5,6 @@ from typing import Callable, Dict, List, Optional, Union
 import numpy as np
 from mmcv.transforms import BaseTransform, Compose
 from mmcv.transforms.utils import cache_random_params, cache_randomness
-from mmcv.transforms.wrappers import Transform
-from mmcv.transforms.wrappers import RandomChoice as MMCV_RandomChoice
 
 from mmdet.registry import TRANSFORMS
 
@@ -278,37 +276,3 @@ class ProposalBroadcaster(BaseTransform):
         outputs['proposals'] = output_scatters[1]['gt_bboxes']
         return outputs
 
-
-
-@TRANSFORMS.register_module()
-class RandomChoice(MMCV_RandomChoice):
-    """Process data with a randomly chosen transform from given candidates.
-
-        Args:
-            transforms (list[list]): A list of transform candidates, each is a
-                sequence of transforms.
-            prob (list[float], optional): The probabilities associated
-                with each pipeline. The length should be equal to the pipeline
-                number and the sum should be 1. If not given, a uniform
-                distribution will be assumed.
-
-        Examples:
-            >>> # config
-            >>> pipeline = [
-            >>>     dict(type='RandomChoice',
-            >>>         transforms=[
-            >>>             [dict(type='RandomHorizontalFlip')],  # subpipeline 1
-            >>>             [dict(type='RandomRotate')],  # subpipeline 2
-            >>>         ]
-            >>>     )
-            >>> ]
-        """
-    def __init__(self, transforms: List[Union[Transform, List[Transform]]],
-                 prob: Optional[List[float]] = None):
-        super(RandomChoice, self).__init__(transforms=transforms, prob=prob)
-
-    def transform(self, results: Dict) -> Optional[Dict]:
-        """Randomly choose a transform to apply."""
-        idx = self.random_pipeline_index()
-        results['random_choice_idx'] = idx
-        return self.transforms[idx](results)

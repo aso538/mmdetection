@@ -243,7 +243,7 @@ class Resize(MMCV_Resize):
         return results
 
     def _reverse_bboxes(self, results) -> None:
-        scale_factor = results['scale_factor']
+        scale_factor = results['mask_scale_factor_list'].pop()
         results['gt_bboxes'].tensor[:, 0] /= scale_factor[0]
         results['gt_bboxes'].tensor[:, 1] /= scale_factor[1]
         results['gt_bboxes'].tensor[:, 2] /= scale_factor[0]
@@ -254,7 +254,7 @@ class Resize(MMCV_Resize):
         if results.get('gt_masks', None) is not None:
             masks = results['gt_masks'].masks
             new_masks = []
-            scale_factor = results['scale_factor']
+            scale_factor = results['scale_factor_list'].pop()
             for mask in masks:
                 ori_shape = (round(mask.shape[0] / scale_factor[0]), round(mask.shape[1] / scale_factor[1]))
                 mask = mmcv.imresize(mask, (ori_shape[-1], ori_shape[0]))
