@@ -242,6 +242,30 @@ class Resize(MMCV_Resize):
             results['scale_factor_list'].append(results['scale_factor'])
         return results
 
+    def _reverse_bboxes(self, results) -> None:
+        scale_factor = results['scale_factor']
+        results['gt_bboxes'].tensor[:, 0] /= scale_factor[0]
+        results['gt_bboxes'].tensor[:, 1] /= scale_factor[1]
+        results['gt_bboxes'].tensor[:, 2] /= scale_factor[0]
+        results['gt_bboxes'].tensor[:, 3] /= scale_factor[1]
+        results['img_shape'] = (round(results['img_shape'][0] / scale_factor[0]), round(results['img_shape'][1] / scale_factor[1]))
+
+    def _reverse_masks(self, results) -> None:
+        if results.get('gt_masks', None) is not None:
+            masks = results['gt_masks'].masks
+            new_masks = []
+            scale_factor = results['scale_factor']
+            for mask in masks:
+                ori_shape = (round(mask.shape[0] / scale_factor[0]), round(mask.shape[1] / scale_factor[1]))
+                mask = mmcv.imresize(mask, (ori_shape[-1], ori_shape[0]))
+                new_masks.append(mask)
+            results['gt_masks'].masks = new_masks
+
+    def reverse(self, results: Dict) -> Optional[Union[Dict, Tuple[List, List]]]:
+        self._reverse_bboxes(results)
+        self._reverse_masks(results)
+        return results
+
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
         repr_str += f'(scale={self.scale}, '
@@ -602,6 +626,33 @@ class RandomFlip(MMCV_RandomFlip):
         # record homography matrix for flip
         self._record_homography_matrix(results)
 
+    def _reverse_bboxes(self, results: dict) -> None:
+        if results['flip']:
+            if results['flip_direction'] == 'horizontal':
+                results['gt_bboxes'].tensor[:, 2] = results['img_shape'][1] - results['gt_bboxes'].tensor[:, 2]
+                results['gt_bboxes'].tensor[:, 0] = results['img_shape'][1] - results['gt_bboxes'].tensor[:, 0]
+            for bbox in results['gt_bboxes'].tensor:
+                tmp_bbox = copy.deepcopy(bbox)
+                if bbox[0] > bbox[2]:
+                    bbox[0], bbox[2] = tmp_bbox[2], tmp_bbox[0]
+                if bbox[1] > bbox[3]:
+                    bbox[1], bbox[3] = tmp_bbox[1], tmp_bbox[3]
+
+    def _reverse_masks(self, results: dict) -> None:
+        if results.get('gt_masks', None) is not None:
+            masks = results['gt_masks'].masks
+            new_masks = []
+            if results['flip']:
+                for mask in masks:
+                    mask = np.fliplr(mask)
+                    new_masks.append(mask)
+                results['gt_masks'].masks = new_masks
+
+    def reverse(self, results: Dict) -> Optional[Union[Dict, Tuple[List, List]]]:
+        self._reverse_bboxes(results)
+        self._reverse_masks(results)
+        return results
+
 
 @TRANSFORMS.register_module()
 class RandomShift(BaseTransform):
@@ -789,6 +840,24 @@ class Pad(MMCV_Pad):
         self._pad_img(results)
         self._pad_seg(results)
         self._pad_masks(results)
+        return results
+
+    def _reverse_bboxes(self, results: dict) -> None:
+        results['img_shape'] = results['pre_pad_size']
+
+    def _reverse_masks(self, results: dict) -> None:
+        if results.get('gt_masks', None) is not None:
+            pre_pad_shape = results['pre_pad_size']
+            masks = results['gt_masks'].masks
+            new_masks = []
+            for mask in masks:
+                mask = mask[0:pre_pad_shape[0], 0:pre_pad_shape[1], ...]
+                new_masks.append(mask)
+            results['gt_masks'].masks = new_masks
+
+    def reverse(self, results: Dict) -> Optional[Union[Dict, Tuple[List, List]]]:
+        self._reverse_bboxes(results)
+        self._reverse_masks(results)
         return results
 
 
@@ -1027,6 +1096,32 @@ class RandomCrop(BaseTransform):
         image_size = results['img'].shape[:2]
         crop_size = self._get_crop_size(image_size)
         results = self._crop_data(results, crop_size, self.allow_negative_crop)
+        return results
+
+    def _reverse_bboxes(self, results: dict) -> None:
+        crop = results['crop_index']  # x1 x2 y1 y2
+        results['img_shape'] = results['pre_crop_size']
+        results['gt_bboxes'].tensor[:, 0] += crop[0]
+        results['gt_bboxes'].tensor[:, 1] += crop[2]
+        results['gt_bboxes'].tensor[:, 2] += crop[0]
+        results['gt_bboxes'].tensor[:, 3] += crop[2]
+
+    def _reverse_masks(self, results: dict) -> None:
+        if results.get('gt_masks', None) is not None:
+            crop = results['crop_index']  # x1 x2 y1 y2
+            pre_crop_shape = results['pre_crop_size']
+            new_masks = []
+            masks = results['gt_masks'].masks
+            for mask in masks:
+                mask = mmcv.impad(mask, padding=(
+                    crop[0], crop[2], pre_crop_shape[1] - crop[1], pre_crop_shape[0] - crop[3]))
+                new_masks.append(mask)
+            results['gt_masks'].masks = new_masks
+
+    def reverse(self, results: Dict) -> Optional[Union[Dict, Tuple[List, List]]]:
+        # img_shape hwc
+        self._reverse_bboxes(results)
+        self._reverse_masks(results)
         return results
 
     def __repr__(self) -> str:

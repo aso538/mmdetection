@@ -1,7 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple, Dict, Union, Any
 
 import numpy as np
+from torch import Tensor
+
 from mmcv.transforms import to_tensor
 from mmcv.transforms.base import BaseTransform
 from mmengine.structures import InstanceData, PixelData
@@ -52,7 +54,7 @@ class PackDetInputs(BaseTransform):
                             'scale_factor', 'flip', 'flip_direction')):
         self.meta_keys = meta_keys
 
-    def transform(self, results: dict) -> dict:
+    def transform(self, results: dict) -> Tuple[Dict[str, Union[Union[Tensor, DetDataSample], Any]], dict]:
         """Method to pack the input data.
 
         Args:
@@ -150,7 +152,7 @@ class PackDetInputs(BaseTransform):
         data_sample.set_metainfo(img_meta)
         packed_results['data_samples'] = data_sample
 
-        return packed_results
+        return packed_results, results
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
